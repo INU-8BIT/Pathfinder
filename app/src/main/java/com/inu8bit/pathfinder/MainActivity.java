@@ -5,6 +5,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Handler;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.TextToSpeech.OnInitListener;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,8 +19,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+
+
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener {
 
@@ -67,7 +72,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             "2494710",
             "2acf710"
     };
-    TTSManager ttsManager = null;
+
+    private TTSManager ttsManager = null;
 
     private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
         // TODO: LeScanCallback and LeStanStart were deprecated as of when Lollipop launched. Find replacement.
@@ -143,9 +149,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         detector = new GestureDetector(this);
         setContentView(R.layout.activity_main);
 
+
         ttsManager = new TTSManager();
         ttsManager.init(this);
     }
+
+
+
 
 
     public boolean BTinit()

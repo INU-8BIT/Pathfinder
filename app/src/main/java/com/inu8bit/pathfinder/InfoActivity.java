@@ -1,12 +1,13 @@
 package com.inu8bit.pathfinder;
 
+import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.widget.Toast;
 
-public class InfoActivity extends AppCompatActivity implements GestureDetector.OnGestureListener  {
+public class InfoActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, TextToSpeech.OnInitListener {
 
     GestureDetector detector;
 
@@ -14,14 +15,35 @@ public class InfoActivity extends AppCompatActivity implements GestureDetector.O
     private static final int SWIPE_MAX_OFF_PATH = 250;
     private static final int SWIPE_THRESHOLD_VELOCITY = 200;
 
-
+    private TextToSpeech tts;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_info);
         detector = new GestureDetector(this);
+        tts = new TextToSpeech(this, this);
     }
+
+    public void onInit(int status) {
+        String myText1 = "path finder가 실행되었습니다.";
+        String myText2 = "사용법을 설명드리겠습니다..";
+        tts.speak(myText1, TextToSpeech.QUEUE_FLUSH, null);
+        tts.speak(myText2, TextToSpeech.QUEUE_ADD, null);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // TTS 객체가 남아있다면 실행을 중지하고 메모리에서 제거한다.
+        if(tts != null){
+            tts.stop();
+            tts.shutdown();
+            tts = null;
+        }
+    }
+
+
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {

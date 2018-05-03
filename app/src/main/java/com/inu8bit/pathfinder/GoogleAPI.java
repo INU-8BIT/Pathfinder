@@ -40,16 +40,15 @@ public class GoogleAPI extends APIWrapper {
         params.put("mode", "transit");
         params.put("key", this.serviceKey);
         params.put("language", "ko");
-        params.put("departure_time", "1525327737");
 
         this.method = "GET";
         return this.getSteps(this.execute().get());
 
     }
 
-    private List<String> getSteps(JSONObject _obj) throws JSONException {
+    private List<String> getSteps(JSONObject jsonObject) throws JSONException {
         // TODO: make these following steps as Class or structural object.
-        JSONObject obj = _obj.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0);
+        JSONObject obj = jsonObject.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0);
         JSONArray steps = obj.getJSONArray("steps");
         List<String> route = new ArrayList<>();
         for(int i = 0; i < steps.length(); i++){

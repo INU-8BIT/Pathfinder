@@ -34,26 +34,29 @@ public class RFIDActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+
         //Toast.makeText(getApplicationContext(), "Fling Gesture", Toast.LENGTH_SHORT).show();
         try {
+
+            // ttsManager.stop();
             //if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH)
             //    return false;
 
             // right to left swipe
             if (e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                Toast.makeText(getApplicationContext(), "Left Swipe", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), getLocalClassName() + "Left Swipe", Toast.LENGTH_SHORT).show();
             }
             // left to right swipe
             else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                Toast.makeText(getApplicationContext(), "Right Swipe", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), getLocalClassName() + "Right Swipe", Toast.LENGTH_SHORT).show();
             }
             // down to up swipe
             else if (e1.getY() - e2.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-                Toast.makeText(getApplicationContext(), "Swipe up", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), getLocalClassName() + "Swipe up", Toast.LENGTH_SHORT).show();
             }
             // up to down swipe
             else if (e2.getY() - e1.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-                Toast.makeText(getApplicationContext(), "Swipe down", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), getLocalClassName() + "Swipe down", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
 
@@ -82,5 +85,4 @@ public class RFIDActivity extends AppCompatActivity implements GestureDetector.O
         //Toast.makeText(getApplicationContext(), "Single Tap Gesture", Toast.LENGTH_SHORT).show();
         return true;
     }
-
 }

@@ -24,6 +24,9 @@ import java.util.Set;
 import java.util.UUID;
 
 
+// TODO: Make Activity interface (for example, TTS Service must stop onDestroy and so on)
+// TODO: All method should be called by interface-form
+// TODO: RFID Activity
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener {
 
@@ -31,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private DataAPI dataAPI;
     private GoogleAPI googleAPI;
     private BluetoothService bluetoothService;
+    private boolean isfirst = true;
 
     //private Navigation navi;
 
@@ -90,47 +94,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         setContentView(R.layout.activity_main);
 
         gpsInfo = new GPSInfo(MainActivity.this);
-        gpsInfo.getCurrentLocation();
-
-        bluetoothService = new BluetoothService(MainActivity.this);
-        bluetoothService.start();
-        bluetoothService.stop();
-
-        double lat = gpsInfo.getLatitude();
-        double lon = gpsInfo.getLongitude();
-
-        dataAPI = new DataAPI();
-        try {
-            List<String> busStopLists = dataAPI.getNearbyBusStop(lat, lon);
-            for(String b: busStopLists){
-                Log.d("Bus Stop:", b);
-            }
-        } catch (Exception e){
-            Log.d("Error", "Exception happened: " + e.getMessage());
-        }
-
-        googleAPI = new GoogleAPI();
-        try {
-            List<String> route = googleAPI.getTransitRoute("인천대입구", "호구포역");
-            for(String r: route){
-                Log.d("Route", r);
-            }
-        } catch (Exception e){
-            Log.d("Error", "Exception happened: " + e.getMessage());
-        }
-
-        /*navi.setCoord(37.570841, 126.985302, 37.551135, 126.988205);
-        List<String> res = navi.findWalkPath();
-
-        StringBuilder sb = new StringBuilder();
-        for (String s : res){
-            sb.append(s);
-            sb.append("\t");
-        }
-        tv.setText(sb);
-        */
-
-        ///////////////////////////////////////////////////////////
         detector = new GestureDetector(this);
 
 
@@ -149,14 +112,24 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         detector = new GestureDetector(this);
         setContentView(R.layout.activity_main);
 
-
         ttsManager = new TTSManager();
         ttsManager.init(this);
+
+        if(isfirst) {
+            isfirst = false;
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                public void run() {
+                    ttsManager.initQueue("안녕하세요. Pathfinder 도우미입니다.");
+                    ttsManager.addQueue("메뉴 이동은 상하좌우로 스크린을 밀어 사용하실 수 있으며, 음성이 필요할 경우 안내 메시지가 출력될 것입니다.");
+                    ttsManager.addQueue("메뉴는 다음과 같습니다.");
+                    ttsManager.addQueue("오른쪽, 경로 검색");
+                    ttsManager.addQueue("위쪽, 주변 정보");
+                    ttsManager.addQueue("아래쪽, 주변 정류장 검색");
+                }
+            }, 1000);
+        }
     }
-
-
-
-
 
     public boolean BTinit()
     {
@@ -309,6 +282,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             //if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH)
             //    return false;
 
+            ttsManager.stop();
             // right to left swipe
             if (e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
                 Toast.makeText(getApplicationContext(), "Left Swipe", Toast.LENGTH_SHORT).show();
@@ -361,4 +335,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         return true;
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ttsManager.stop();
+        ttsManager.shutDown();
+    }
 }

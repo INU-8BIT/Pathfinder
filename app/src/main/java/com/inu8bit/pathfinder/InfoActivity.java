@@ -1,5 +1,6 @@
 package com.inu8bit.pathfinder;
 
+import android.os.Handler;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -7,9 +8,10 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.widget.Toast;
 
-public class InfoActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, TextToSpeech.OnInitListener {
+public class InfoActivity extends AppCompatActivity implements GestureDetector.OnGestureListener {
 
     GestureDetector detector;
+    private TTSManager ttsManager = null;
 
     private static final int SWIPE_MIN_DISTANCE = 120;
     private static final int SWIPE_MAX_OFF_PATH = 250;
@@ -22,27 +24,20 @@ public class InfoActivity extends AppCompatActivity implements GestureDetector.O
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_info);
         detector = new GestureDetector(this);
-        tts = new TextToSpeech(this, this);
-    }
 
-    public void onInit(int status) {
-        String myText1 = "path finder가 실행되었습니다.";
-        String myText2 = "사용법을 설명드리겠습니다..";
-        tts.speak(myText1, TextToSpeech.QUEUE_FLUSH, null);
-        tts.speak(myText2, TextToSpeech.QUEUE_ADD, null);
-    }
+        ttsManager = new TTSManager();
+        ttsManager.init(this);
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        // TTS 객체가 남아있다면 실행을 중지하고 메모리에서 제거한다.
-        if(tts != null){
-            tts.stop();
-            tts.shutdown();
-            tts = null;
-        }
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            public void run() {
+                ttsManager.initQueue("전방 정보 검색페이지입니다.");
+                ttsManager.addQueue("RECO 단말기가 검색되었습니다");
+                ttsManager.addQueue("현재 위치는 인천대 입구역입니다.");
+                ttsManager.addQueue("다음 열차는 약 8분 뒤 도착 예정입니다.");
+            }
+        }, 1000);
     }
-
 
 
     @Override
@@ -60,6 +55,7 @@ public class InfoActivity extends AppCompatActivity implements GestureDetector.O
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         //Toast.makeText(getApplicationContext(), "Fling Gesture", Toast.LENGTH_SHORT).show();
         try {
+            ttsManager.stop();
             //if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH)
             //    return false;
 
@@ -105,6 +101,13 @@ public class InfoActivity extends AppCompatActivity implements GestureDetector.O
     public boolean onSingleTapUp(MotionEvent e) {
         //Toast.makeText(getApplicationContext(), "Single Tap Gesture", Toast.LENGTH_SHORT).show();
         return true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ttsManager.stop();
+        ttsManager.shutDown();
     }
 
 }

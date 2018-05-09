@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -28,13 +29,11 @@ import java.util.UUID;
 // TODO: All method should be called by interface-form
 // TODO: RFID Activity
 
-public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener {
+public class MainActivity extends AppCompatActivity {
 
-    private GPSInfo gpsInfo;
-    private DataAPI dataAPI;
-    private GoogleAPI googleAPI;
     private BluetoothService bluetoothService;
     private boolean isfirst = true;
+    private ImageView imageView;
 
     //private Navigation navi;
 
@@ -57,9 +56,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private InputStream inputStream;
 
     boolean deviceConnected=false;
-    Thread thread;
     byte buffer[];
-    int bufferPosition;
     boolean stopThread;
 
     String RFID[] = {
@@ -93,10 +90,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); //display on
         setContentView(R.layout.activity_main);
 
-        gpsInfo = new GPSInfo(MainActivity.this);
-        detector = new GestureDetector(this);
-
-
         if(BTinit())
         {
             if(BTconnect())
@@ -109,7 +102,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
 
         }
-        detector = new GestureDetector(this);
         setContentView(R.layout.activity_main);
 
         ttsManager = new TTSManager();
@@ -129,6 +121,31 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             }, 1000);
         }
+
+        imageView = findViewById(R.id.imageView);
+        imageView.setOnTouchListener(new SwipeListener (getApplicationContext()){
+            @Override
+            public void onLeft(){
+//                Intent RFIDIntent = new Intent(getApplicationContext(), RFIDActivity.class);
+  //              startActivity(RFIDIntent);
+            }
+
+            public void onRight(){
+                Intent RouteIntent = new Intent(getApplicationContext(), RouteActivity.class);
+                startActivity(RouteIntent);
+            }
+
+            public void onTop(){
+                Toast.makeText(getApplicationContext(), "Swipe up", Toast.LENGTH_SHORT).show();
+                Intent InfoIntent = new Intent(getApplicationContext(), InfoActivity.class);
+                startActivity(InfoIntent);
+            }
+
+            public void onBottom(){
+                Intent BusIntent = new Intent(getApplicationContext(), BusActivity.class);
+                startActivity(BusIntent);
+            }
+        });
     }
 
     public boolean BTinit()
@@ -266,80 +283,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         thread.start();
     }
-
-
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        return detector.onTouchEvent(event);
-    }
-
-    @Override
-    public boolean onDown(MotionEvent e) {
-        //Toast.makeText(getApplicationContext(), "OnDown Gesture", Toast.LENGTH_SHORT).show();
-        return false;
-    }
-
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        //Toast.makeText(getApplicationContext(), "Fling Gesture", Toast.LENGTH_SHORT).show();
-        try {
-            //if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH)
-            //    return false;
-
-            ttsManager.stop();
-            // right to left swipe
-            if (e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                Toast.makeText(getApplicationContext(), "Left Swipe", Toast.LENGTH_SHORT).show();
-                Intent RFIDIntent = new Intent(getApplicationContext(), RFIDActivity.class);
-                startActivity(RFIDIntent);
-            }
-            // left to right swipe
-            else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-                Toast.makeText(getApplicationContext(), "Right Swipe", Toast.LENGTH_SHORT).show();
-                Intent RouteIntent = new Intent(getApplicationContext(), RouteActivity.class);
-                startActivity(RouteIntent);
-            }
-            // down to up swipe
-            else if (e1.getY() - e2.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-                Toast.makeText(getApplicationContext(), "Swipe up", Toast.LENGTH_SHORT).show();
-                Intent InfoIntent = new Intent(getApplicationContext(), InfoActivity.class);
-                startActivity(InfoIntent);
-            }
-            // up to down swipe
-            else if (e2.getY() - e1.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-                Toast.makeText(getApplicationContext(), "Swipe down", Toast.LENGTH_SHORT).show();
-                Intent BusIntent = new Intent(getApplicationContext(), BusActivity.class);
-                startActivity(BusIntent);
-            }
-        } catch (Exception e) {
-
-        }
-        return true;
-    }
-
-    @Override
-    public void onLongPress(MotionEvent e) {
-        //Toast.makeText(getApplicationContext(), "Long Press Gesture", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        //Toast.makeText(getApplicationContext(), "Scroll Gesture", Toast.LENGTH_LONG).show();
-        return false;
-    }
-
-    @Override
-    public void onShowPress(MotionEvent e) {
-        //Toast.makeText(getApplicationContext(), "Show Press gesture", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public boolean onSingleTapUp(MotionEvent e) {
-        //Toast.makeText(getApplicationContext(), "Single Tap Gesture", Toast.LENGTH_SHORT).show();
-        return true;
-    }
-
 
 
     @Override

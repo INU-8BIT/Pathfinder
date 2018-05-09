@@ -7,4 +7,10 @@
     tools:context=".BusActivity"
     android:background="@android:color/background_dark"
     >
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:srcCompat="@drawable/bg_transparent" />
 </android.support.constraint.ConstraintLayout>

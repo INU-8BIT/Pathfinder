@@ -217,22 +217,27 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             final byte[] rawBytes = new byte[byteCount];
                             inputStream.read(rawBytes, 0, byteCount); // 0과 byteCount 추가함
                             String string = new String(rawBytes, "UTF-8");
-                            //String string = new String(rawBytes, 0, byteCount);
-                            Log.d("string", string);
-                            for(int i = 0; i < RFID2.length; i++) {
-                                //Log.d("RFID2", "searching");
-                                if (string.contains(RFID2[i])) {
-                                    Log.d("RFID2", String.valueOf(i));
-                                    switch (String.valueOf(i)) {
-                                        case "0": ttsManager.initQueue("정보대 건물입니다."); break;
-                                        case "1": ttsManager.initQueue("공대 건물입니다."); break;
-                                        case "2": ttsManager.initQueue("복지회관 건물입니다."); break;
-                                        case "3": ttsManager.initQueue("자연과학대학 건물입니다."); break;
-                                        case "4": ttsManager.initQueue("인문대학 건물입니다."); break;
-                                        default: ttsManager.initQueue("경영대학 건물입니다."); break;
+                            fullName = fullName + string;
+                            Log.d("string", fullName);
+                            if(fullName.contains("\r\n")) {
+                                fullName.replaceAll("\r\n", "");
+                                for(int i = 0; i < RFID.length; i++) {
+                                    if (fullName.contains(RFID[i])) {
+                                        Log.d("RFID", String.valueOf(i));
+                                        switch (String.valueOf(i)) {
+                                            case "0": ttsManager.initQueue("정보대 건물입니다."); break;
+                                            case "1": ttsManager.initQueue("공대 건물입니다."); break;
+                                            case "2": ttsManager.initQueue("복지회관 건물입니다."); break;
+                                            case "3": ttsManager.initQueue("자연과학대학 건물입니다."); break;
+                                            case "4": ttsManager.initQueue("인문대학 건물입니다."); break;
+                                            default: ttsManager.initQueue("경영대학 건물입니다."); break;
+                                        }
                                     }
                                 }
+                                fullName = "";
                             }
+
+
                             handler.post(new Runnable() {
                                 public void run()
                                 {
@@ -334,6 +339,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         //Toast.makeText(getApplicationContext(), "Single Tap Gesture", Toast.LENGTH_SHORT).show();
         return true;
     }
+
+
 
     @Override
     protected void onDestroy() {

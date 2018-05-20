@@ -4,9 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -38,19 +36,18 @@ public class DataAPI extends APIWrapper {
     private String GET_BUS_SPECIFIC_ARRIVAL_INFO = "ArvlInfoInqireService/getSttnAcctoSpcifyRouteBusArvlPrearngeInfoList";
 
     DataAPI(){
-        serviceKey = DataAPIKey;
         url = new StringBuilder("http://openapi.tago.go.kr/openapi/service/");
     }
 
     public Map<Integer, String[]> getNearbyBusStop(double lat, double lon) throws InterruptedException, ExecutionException, JSONException{
         url.append(GET_NEARBY_BUS_STOP);
-        params.put("ServiceKey", this.serviceKey);
+        params.put("ServiceKey", DataAPIKey);
         params.put("gpsLati", String.valueOf(lat));
         params.put("gpsLong", String.valueOf(lon));
         params.put("_type", "json");
 
         this.method = "GET";
-        return this.parseList(this.execute().get());
+        return this.parseList(new JSONObject(this.send()));
     }
 
     private Map<Integer, String[]> parseList(JSONObject jsonObject) throws JSONException {

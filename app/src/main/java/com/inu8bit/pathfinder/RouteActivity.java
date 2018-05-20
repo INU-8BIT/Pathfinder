@@ -21,9 +21,7 @@ public class RouteActivity extends AppCompatActivity {
     private TTSManager ttsManager;
     private ImageView imageView;
 
-    String start, end;
-
-
+    String start="호구포역", end="서울대입구";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,42 +35,55 @@ public class RouteActivity extends AppCompatActivity {
         handler.postDelayed(new Runnable() {
             public void run() {
                 ttsManager.initQueue("경로 안내 페이지입니다");
-                ttsManager.addQueue("출발지는 왼쪽으로, ");
-                ttsManager.addQueue("도착지는 오른쪽으로 스와이프 하세요.");
+                ttsManager.addQueue("위쪽 출발지");
+                ttsManager.addQueue("아래쪽 도착지");
+
             }
         }, 1000);
 
         imageView = findViewById(R.id.imageView);
-        imageView.setOnTouchListener(new SwipeListener (getApplicationContext()){
+        imageView.setOnTouchListener(new SwipeListener(getApplicationContext()){
             @Override
-            public void onLeft(){
-                Intent RFIDIntent = new Intent(getApplicationContext(), RFIDActivity.class);
-                Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);                // Create Intent
-                i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());           // Call Package
-                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");                     // Set Language
-                i.putExtra(RecognizerIntent.EXTRA_PROMPT, "출발지");                       // Prompt Message
-                ttsManager.initQueue("출발지를 말씀하세요");
-                startActivityForResult(i, 0);
-
-            }
-
             public void onRight(){
-                Intent j = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);                // Create Intent
-                j.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());           // Call Package
-                j.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");                     // Set Language
-                j.putExtra(RecognizerIntent.EXTRA_PROMPT, "도착지");                       // Prompt Message
-                ttsManager.initQueue("도착지를 말씀하세요");
-                startActivityForResult(j, 1);                                        // Run Google Voice Recognition
+                ttsManager.initQueue("경로 탐색 중입니다");
+                googleAPI = new GoogleAPI();
+                try {
+                    List<Route> route = googleAPI.getTransitRoute(start, end);
+                    ttsManager.initQueue(start + "부터 " + end + "까지 경로는 다음과 같습니다");
+                    for (int i = 0; i < route.size(); i++) {
+                        Route r = route.get(i);
+                        StringBuilder stringBuilder = new StringBuilder();
+                        if(r.method != null)
+                            stringBuilder.append(r.method + ", ");
+                        stringBuilder.append(r.instruction + ", ");
+                        ttsManager.addQueue(stringBuilder.toString());
+                    }
+
+                } catch (Exception e) {
+                    Log.e("Error", "Exception happened: " + e.getMessage());
+                }
             }
 
             public void onTop(){
+                ttsManager.initQueue("출발지를 말씀하세요");
+                Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());           // Call Package
+                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");                     // Set Language
+                i.putExtra(RecognizerIntent.EXTRA_PROMPT, "출발지");                       // Prompt Message
+                startActivityForResult(i, 0);
             }
-
             public void onBottom(){
+                ttsManager.initQueue("도착지를 말씀하세요");
+                Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());           // Call Package
+                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");                     // Set Language
+                i.putExtra(RecognizerIntent.EXTRA_PROMPT, "도착지");                       // Prompt Message
+                startActivityForResult(i, 1);                                        // Run Google Voice Recognition
             }
         });
-
     }
+
+
 
     // TODO: Make this as a class and get return value via Listener
     @Override
@@ -98,5 +109,4 @@ public class RouteActivity extends AppCompatActivity {
         ttsManager.stop();
         ttsManager.shutDown();
     }
-
 }

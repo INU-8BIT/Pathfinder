@@ -8,9 +8,11 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import static com.inu8bit.pathfinder.BuildConfig.GoogleAPIKey;
+import static com.inu8bit.pathfinder.BuildConfig.GoogleDirectionAPIKey;
+import static com.inu8bit.pathfinder.BuildConfig.GooglePlaceAPIKey;
 
 /**
  * Class for Google Direction API brought by Google and SK Map
@@ -18,70 +20,116 @@ import static com.inu8bit.pathfinder.BuildConfig.GoogleAPIKey;
  *      1. Get the route to destination via transit
  */
 public class GoogleAPI extends APIWrapper {
-    // TODO: Let user to select when to go.
-    GoogleAPI(){
-        serviceKey = GoogleAPIKey;
-        url = new StringBuilder("https://maps.googleapis.com/maps/api/directions/json");
-    }
+    private String directionURL = "https://maps.googleapis.com/maps/api/directions/json";
+    private String placeURL = "https://maps.googleapis.com/maps/api/place/textsearch/json";
+    private String detailedPlaceURL = "https://maps.googleapis.com/maps/api/place/details/json";
 
-    public List<String> getTransitRoute(double stLat, double stLon, double edLat, double edLon) throws InterruptedException, ExecutionException, JSONException {
+
+    public List<Route> getTransitRoute(double stLat, double stLon, double edLat, double edLon) throws InterruptedException, ExecutionException, JSONException {
+        url = new StringBuilder(directionURL);
         params.put("origin", String.valueOf(stLat) + "," + String.valueOf(stLon));
         params.put("destination", String.valueOf(edLat) + "," + String.valueOf(edLon));
         params.put("mode", "transit");
-        params.put("key", this.serviceKey);
+        params.put("key", GoogleDirectionAPIKey);
 
         this.method = "GET";
-        return this.getSteps(this.execute().get());
+        return this.getSteps(new JSONObject(this.send()));
     }
 
-    public List<String> getTransitRoute(String stName, String edName) throws InterruptedException, ExecutionException, JSONException {
+    public List<Route> getTransitRoute(String stName, String edName) throws InterruptedException, ExecutionException, JSONException {
+        url = new StringBuilder(directionURL);
         params.put("origin", stName);
         params.put("destination", edName);
         params.put("mode", "transit");
-        params.put("key", this.serviceKey);
+        params.put("key", GoogleDirectionAPIKey);
         params.put("language", "ko");
 
         this.method = "GET";
-        return this.getSteps(this.execute().get());
-
+        return this.getSteps(new JSONObject(this.send()));
     }
 
-    private List<String> getSteps(JSONObject jsonObject) throws JSONException {
+    private List<Route> getSteps(JSONObject jsonObject) throws InterruptedException, ExecutionException, JSONException {
         // TODO: make these following steps as Class or structural object.
-        JSONObject obj = jsonObject.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0);
-        JSONArray steps = obj.getJSONArray("steps");
-        List<String> route = new ArrayList<>();
+
+        JSONObject routeInfo = jsonObject.getJSONArray("routes").getJSONObject(0).getJSONArray("legs").getJSONObject(0);
+        JSONArray steps = routeInfo.getJSONArray("steps");
+
+        String total_departure_time = routeInfo.getJSONObject("departure_time").getString("text").replace(":", "시");
+        String total_arrival_time = routeInfo.getJSONObject("arrival_time").getString("text").replace(":", "시");
+        String distance = routeInfo.getJSONObject("distance").getString("text");
+        String duration = routeInfo.getJSONObject("duration").getString("text");
+
+        List<Route> route = new ArrayList<>();
         for(int i = 0; i < steps.length(); i++){
-            JSONObject step = steps.getJSONObject(i);
+            JSONObject currentStep = steps.getJSONObject(i);
+            String travel_mode = currentStep.getString("travel_mode");
+            String instruction = currentStep.getString("html_instructions");
 
-            String travel_mode = step.getString("travel_mode");
+            String arrival = null;
+            String arrival_time = null;
+            String method = null;
+            String dist = null;
+            String agency = null;
+            String agencyTel = null;
+
             if(travel_mode.equals("TRANSIT")) {
-                JSONObject detail = step.getJSONObject("transit_details");
-                route.add(detail.getJSONObject("line").getString("name") + " " + detail.getJSONObject("line").getString("short_name") + " " + detail.getString("headsign") + " 행 탑승");
-                StringBuilder departure = new StringBuilder();
-                departure.append("출발역: ");
-                departure.append(detail.getJSONObject("departure_stop").getString("name"));
-                departure.append(" (예정 시간: ");
-                departure.append(detail.getJSONObject("departure_time").getString("text"));
-                departure.append(") ");
-                route.add(departure.toString());
+                JSONObject details = currentStep.getJSONObject("transit_details");
+                Log.d("Details: ", instruction);
+                arrival = details.getJSONObject("arrival_stop").getString("name");
+                arrival_time = details.getJSONObject("arrival_time").getString("text").replace(":", "시") + "분";
+                method = details.getJSONObject("line").getString("name") + details.getJSONObject("line").getString("short_name");
+                dist = String.valueOf(details.getInt("num_stops"));
+                agency = details.getJSONObject("line").getJSONArray("agencies").getJSONObject(0).getString("name");
 
-                StringBuilder arrival = new StringBuilder();
-                arrival.append("도착역: ");
-                arrival.append(detail.getJSONObject("arrival_stop").getString("name"));
-                arrival.append(" (예정 시간: ");
-                arrival.append(detail.getJSONObject("arrival_time").getString("text"));
-                arrival.append(") ");
-
-                route.add(arrival.toString());
+                try {
+                    // TODO: when place not found
+                    String agencyID = this.getPlaceID(agency);
+                    agencyTel = this.getPlaceTelephoneNumber(agencyID);
+                } catch (JSONException ex){
+                    agencyTel = null;
+                }
             }
-
-            else if(travel_mode.equals("WALKING")){
-                route.add(step.getString("html_instructions"));
-                route.add("이동거리: " + step.getJSONObject("distance").getString("text"));
+            else if (travel_mode.equals("WALKING")){
+                dist = currentStep.getJSONObject("distance").getString("text");
             }
+            /*
+            route.add(new Route(
+                    travel_mode, instruction, null, null, null, dist, null, null
+            ));*/
+
+            route.add(new Route(
+                    travel_mode, instruction, arrival, arrival_time, method, dist, agency, agencyTel
+            ));
         }
 
         return route;
+    }
+
+    // https://maps.googleapis.com/maps/api/place/textsearch/json?query=QUERY&key=YOUR_KEY&language=ko
+    private String getPlaceID(String name) throws InterruptedException, ExecutionException, JSONException {
+        url = new StringBuilder(placeURL);
+        params.put("query", name + "한국");
+        params.put("key", GooglePlaceAPIKey);
+        params.put("language", "ko");
+
+        this.method = "GET";
+        String result = this.send();
+        return new JSONObject(result)
+                .getJSONArray("results")
+                .getJSONObject(0)
+                .getString("place_id");
+    }
+
+    // https://maps.googleapis.com/maps/api/place/details/json?placeid=PLACE_ID&key=YOUR_API_KEY
+    private String getPlaceTelephoneNumber(String placeID) throws InterruptedException, ExecutionException, JSONException {
+        url = new StringBuilder(detailedPlaceURL);
+        params.put("placeid", placeID);
+        params.put("key", GooglePlaceAPIKey);
+        params.put("language", "ko");
+
+        this.method = "GET";
+        String result = this.send();
+        return new JSONObject(result).getJSONObject("result")
+                .getString("formatted_phone_number");
     }
 }

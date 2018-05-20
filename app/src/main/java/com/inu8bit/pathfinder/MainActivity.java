@@ -113,7 +113,6 @@ public class MainActivity extends AppCompatActivity {
             handler.postDelayed(new Runnable() {
                 public void run() {
                     ttsManager.initQueue("안녕하세요. Pathfinder 도우미입니다.");
-                    ttsManager.addQueue("메뉴 이동은 상하좌우로 스크린을 밀어 사용하실 수 있으며, 음성이 필요할 경우 안내 메시지가 출력될 것입니다.");
                     ttsManager.addQueue("메뉴는 다음과 같습니다.");
                     ttsManager.addQueue("오른쪽, 경로 검색");
                     ttsManager.addQueue("위쪽, 주변 정보");
@@ -131,17 +130,20 @@ public class MainActivity extends AppCompatActivity {
             }
 
             public void onRight(){
+                ttsManager.stop();
                 Intent RouteIntent = new Intent(getApplicationContext(), RouteActivity.class);
                 startActivity(RouteIntent);
             }
 
             public void onTop(){
+                ttsManager.stop();
                 Toast.makeText(getApplicationContext(), "Swipe up", Toast.LENGTH_SHORT).show();
                 Intent InfoIntent = new Intent(getApplicationContext(), InfoActivity.class);
                 startActivity(InfoIntent);
             }
 
             public void onBottom(){
+                ttsManager.stop();
                 Intent BusIntent = new Intent(getApplicationContext(), BusActivity.class);
                 startActivity(BusIntent);
             }
@@ -283,12 +285,17 @@ public class MainActivity extends AppCompatActivity {
 
         thread.start();
     }
-
+    @Override
+    protected void onPause(){
+        ttsManager.stop();
+        ttsManager.shutDown();
+        super.onPause();
+    }
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         ttsManager.stop();
         ttsManager.shutDown();
+        super.onDestroy();
     }
 }

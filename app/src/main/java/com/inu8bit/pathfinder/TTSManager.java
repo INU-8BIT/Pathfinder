@@ -51,9 +51,10 @@ public class TTSManager {
     }
 
     public void initQueue(String text) {
-
-        if (isLoaded)
+        if (isLoaded) {
+            mTts.stop();
             mTts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+        }
         else
             Log.e("error", "TTS Not Initialized");
     }

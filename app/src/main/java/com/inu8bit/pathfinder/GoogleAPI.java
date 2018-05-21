@@ -77,7 +77,7 @@ public class GoogleAPI extends APIWrapper {
                 Log.d("Details: ", instruction);
                 arrival = details.getJSONObject("arrival_stop").getString("name");
                 arrival_time = details.getJSONObject("arrival_time").getString("text").replace(":", "시") + "분";
-                method = details.getJSONObject("line").getString("name") + details.getJSONObject("line").getString("short_name");
+                method = details.getJSONObject("line").getString("name") + details.getJSONObject("line").getString("short_name").replaceAll("M", "엠");
                 dist = String.valueOf(details.getInt("num_stops"));
                 agency = details.getJSONObject("line").getJSONArray("agencies").getJSONObject(0).getString("name");
 
@@ -92,10 +92,6 @@ public class GoogleAPI extends APIWrapper {
             else if (travel_mode.equals("WALKING")){
                 dist = currentStep.getJSONObject("distance").getString("text");
             }
-            /*
-            route.add(new Route(
-                    travel_mode, instruction, null, null, null, dist, null, null
-            ));*/
 
             route.add(new Route(
                     travel_mode, instruction, arrival, arrival_time, method, dist, agency, agencyTel

@@ -1,6 +1,7 @@
 package com.inu8bit.pathfinder;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.View;
 import android.view.MotionEvent;
@@ -21,6 +22,8 @@ public class SwipeListener implements View.OnTouchListener {
     public void onLeft() {}
     public void onTop() {}
     public void onBottom() {}
+    public void onTapUp(){}
+    public void onLongTouch(){}
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
@@ -33,10 +36,22 @@ public class SwipeListener implements View.OnTouchListener {
         //private static final int SWIPE_MAX_OFF_PATH = 250;
         private static final int SWIPE_THRESHOLD_VELOCITY = 200;
 
-
         @Override
         public boolean onDown(MotionEvent e) {
             return true;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            // Single Tap
+            onTapUp();
+            return true;
+        }
+
+        @Override
+        public void onLongPress(MotionEvent e){
+            // Long Press
+            onLongTouch();
         }
 
         @Override
@@ -60,5 +75,4 @@ public class SwipeListener implements View.OnTouchListener {
             return true;
         }
     }
-
 }

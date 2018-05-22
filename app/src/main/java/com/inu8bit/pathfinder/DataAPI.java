@@ -4,7 +4,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -17,21 +19,8 @@ import static com.inu8bit.pathfinder.BuildConfig.DataAPIKey;
  */
 public class DataAPI extends APIWrapper {
 
-    public static class BusStop {
-        public String nodeNo;
-        public String nodeNm;
-        public String nodeId;
-        public String cityCode;
-
-        BusStop(String nodeId, String nodeNm, String nodeNo, String citycode){
-            this.nodeId = nodeId;
-            this.nodeNm = nodeNm;
-            this.nodeNo = nodeNo;
-            this.cityCode = citycode;
-        }
-    }
-
     private String GET_NEARBY_BUS_STOP = "BusSttnInfoInqireService/getCrdntPrxmtSttnList";
+    private String GET_STATION_BY_NAME = "BusSttnInfoInqireService/getSttnNoList";
     private String GET_BUS_ARRIVAL_INFO = "ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList";
     private String GET_BUS_SPECIFIC_ARRIVAL_INFO = "ArvlInfoInqireService/getSttnAcctoSpcifyRouteBusArvlPrearngeInfoList";
 
@@ -65,5 +54,30 @@ public class DataAPI extends APIWrapper {
             });
         }
         return busList;
+    }
+
+    public List<BusStop> getStationInfoByName(String citycode, String name) throws InterruptedException, ExecutionException, JSONException{
+        url.append(GET_STATION_BY_NAME);
+        params.put("ServiceKey", DataAPIKey);
+        params.put("cityCode", citycode);
+        params.put("name", name);
+        params.put("_type", "json");
+
+        this.method = "GET";
+        JSONArray stationList = new JSONObject(this.send()).getJSONObject("body").getJSONObject("items").getJSONArray("item");
+        int num = new JSONObject(this.send()).getJSONObject("body").getJSONObject("items").getInt("totalCount");
+        List<BusStop> stopList = new ArrayList<>();
+        for (int i = 0; i < num; i++) {
+            //  BusStop(String _nodeid, String _name, String _nodenum, double _lat, double _lon){
+            JSONObject station = stationList.getJSONObject(i);
+            stopList.add(new BusStop(
+                    station.getString("nodeid"),
+                    station.getString("nodenm"),
+                    station.getInt("nodeno"),
+                    station.getDouble("gpsLati"),
+                    station.getDouble("gpslong"))
+            );
+        }
+        return stopList;
     }
 }

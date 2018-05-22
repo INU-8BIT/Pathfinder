@@ -24,13 +24,13 @@ public class GPSInfo extends Service implements LocationListener {
 
     private final Context mContext;
 
-    boolean isGPSEnabled = false;
-    boolean isNetworkEnabled = false;
-    boolean gpsStatus = false;
+    private boolean isGPSEnabled = false;
+    private boolean isNetworkEnabled = false;
+    private boolean gpsStatus = false;
 
-    Location location;
-    double lat;         // latitude
-    double lon;         // longitude
+    private Location location;
+    private double lat;         // latitude
+    private double lon;         // longitude
 
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // minimum distance to update
     private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1;  // millisecond

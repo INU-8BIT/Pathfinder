@@ -137,7 +137,6 @@ public class MainActivity extends AppCompatActivity {
 
             public void onTop(){
                 ttsManager.stop();
-                Toast.makeText(getApplicationContext(), "Swipe up", Toast.LENGTH_SHORT).show();
                 Intent InfoIntent = new Intent(getApplicationContext(), InfoActivity.class);
                 startActivity(InfoIntent);
             }

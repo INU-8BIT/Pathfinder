@@ -1,7 +1,7 @@
 package com.inu8bit.pathfinder;
 
 /**
- * 
+ *
  */
 
 public class BusStop {

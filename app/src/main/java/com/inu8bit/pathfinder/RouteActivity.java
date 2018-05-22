@@ -48,8 +48,8 @@ public class RouteActivity extends AppCompatActivity {
             public void run() {
                 Log.d("ttsManager","Initialized");
                 ttsManager.initQueue("경로 안내 페이지입니다");
-                ttsManager.addQueue("위쪽 출발지");
-                ttsManager.addQueue("아래쪽 도착지");
+                ttsManager.addQueue("위쪽: 출발지");
+                ttsManager.addQueue("아래쪽: 도착지");
 
             }
         }, 1000);
@@ -79,8 +79,6 @@ public class RouteActivity extends AppCompatActivity {
                             if(currRoute.agencyNumber != null) {
                                 ttsManager.addQueue("운수회사로 전화를 거시려면 화면을 길게 누르세요.");
                                 agencyNumber = currRoute.agencyNumber;
-                                //startActivity(new Intent("android.intent.action.CALL", Uri.parse("010-9049-0841")));
-                                call("010-9049-0941");
                             }
                             else {
                                 agencyNumber = null;
@@ -99,12 +97,8 @@ public class RouteActivity extends AppCompatActivity {
                 if(agencyNumber != null){
                     for (int i = 0; i < 2; i++) {
                         try {
-                            if (Build.VERSION.SDK_INT >= 23 &&
-                                    ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-                                // ask for permission
-                                ActivityCompat.requestPermissions(RouteActivity.this, new String[]{Manifest.permission.CALL_PHONE}, 1);
-                            }
-
+                            CallPhone.requestPermission(getApplicationContext());
+                            startActivity(new Intent("android.intent.action.CALL", Uri.parse("tel:" + agencyNumber)));
                             break;
                         } catch (SecurityException e){
                             // SecurityException when permission is not granted
@@ -120,7 +114,7 @@ public class RouteActivity extends AppCompatActivity {
                 googleAPI = new GoogleAPI();
                 try {
                     routes = googleAPI.getTransitRoute(start, end);
-                    ttsManager.initQueue(start + "부터 " + end + "까지 경로를 검색하였습니다.");
+                    ttsManager.addQueue(start + "부터 " + end + "까지 경로를 검색하였습니다.");
                     nextRoute = routes.iterator();
 
                 } catch (Exception e) {
@@ -129,20 +123,25 @@ public class RouteActivity extends AppCompatActivity {
             }
 
             public void onTop(){
-                ttsManager.initQueue("출발지를 말씀하세요");
                 Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
                 i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());           // Call Package
                 i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");                     // Set Language
                 i.putExtra(RecognizerIntent.EXTRA_PROMPT, "출발지");                       // Prompt Message
                 startActivityForResult(i, 0);
+                routes.clear();
             }
             public void onBottom(){
-                ttsManager.initQueue("도착지를 말씀하세요");
                 Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
                 i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());           // Call Package
                 i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");                     // Set Language
                 i.putExtra(RecognizerIntent.EXTRA_PROMPT, "도착지");                       // Prompt Message
                 startActivityForResult(i, 1);                                        // Run Google Voice Recognition
+                routes.clear();
+            }
+
+            @Override
+            public void onLeft(){
+                RouteActivity.super.onBackPressed();
             }
         });
     }
@@ -159,19 +158,17 @@ public class RouteActivity extends AppCompatActivity {
                     break;
                 case 1:
                     Log.d("Destination: ", matches.get(0));
-                    end = matches.get(0);
                     break;
                 case 2:
                     break;
             }
         } catch (Exception e){
             // When Voice Recognition View is stopped or user touched outside the box
+            ttsManager.initQueue("입력이 취소되었습니다");
             super.onActivityResult(requestCode, resultCode, data);
+
         }
         super.onActivityResult(requestCode, resultCode, data);
-    }
-    protected void call(String str){
-        startActivity(new Intent("android.intent.action.CALL", Uri.parse("tel:" + "010-9049-0841")));
     }
     @Override
     protected void onPause(){

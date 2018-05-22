@@ -8,7 +8,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static com.inu8bit.pathfinder.BuildConfig.GoogleDirectionAPIKey;
@@ -21,7 +20,8 @@ import static com.inu8bit.pathfinder.BuildConfig.GooglePlaceAPIKey;
  */
 public class GoogleAPI extends APIWrapper {
     private String directionURL = "https://maps.googleapis.com/maps/api/directions/json";
-    private String placeURL = "https://maps.googleapis.com/maps/api/place/textsearch/json";
+    private String placeTextSearchURL = "https://maps.googleapis.com/maps/api/place/textsearch/json";
+    private String placeNearbySearchURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json";
     private String detailedPlaceURL = "https://maps.googleapis.com/maps/api/place/details/json";
 
 
@@ -77,7 +77,11 @@ public class GoogleAPI extends APIWrapper {
                 Log.d("Details: ", instruction);
                 arrival = details.getJSONObject("arrival_stop").getString("name");
                 arrival_time = details.getJSONObject("arrival_time").getString("text").replace(":", "시") + "분";
-                method = details.getJSONObject("line").getString("name") + details.getJSONObject("line").getString("short_name").replaceAll("M", "엠");
+                try {
+                    method = details.getJSONObject("line").getString("name") + details.getJSONObject("line").getString("short_name").replaceAll("M", "엠");
+                } catch (JSONException e) {
+                    method = details.getJSONObject("line").getString("name");
+                }
                 dist = String.valueOf(details.getInt("num_stops"));
                 agency = details.getJSONObject("line").getJSONArray("agencies").getJSONObject(0).getString("name");
 
@@ -103,7 +107,7 @@ public class GoogleAPI extends APIWrapper {
 
     // https://maps.googleapis.com/maps/api/place/textsearch/json?query=QUERY&key=YOUR_KEY&language=ko
     private String getPlaceID(String name) throws InterruptedException, ExecutionException, JSONException {
-        url = new StringBuilder(placeURL);
+        url = new StringBuilder(placeTextSearchURL);
         params.put("query", name + "한국");
         params.put("key", GooglePlaceAPIKey);
         params.put("language", "ko");
@@ -127,5 +131,29 @@ public class GoogleAPI extends APIWrapper {
         String result = this.send();
         return new JSONObject(result).getJSONObject("result")
                 .getString("formatted_phone_number");
+    }
+
+    public List<String> getNearbyPlace(double lat, double lon) throws InterruptedException, ExecutionException, JSONException {
+        url = new StringBuilder(placeNearbySearchURL);
+        params.put("type", "point_of_interest");
+        params.put("key", GooglePlaceAPIKey);
+        params.put("language", "ko");
+        params.put("location", String.valueOf(lat) + "," + String.valueOf(lon));
+        params.put("radius", "100");
+
+        this.method = "GET";
+        String result = this.send();
+        JSONArray places = new JSONObject(result).getJSONArray("results");
+
+        List<String> placeList = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            try {
+                placeList.add(places.getJSONObject(i).getString("name"));
+            } catch (JSONException e){
+                // no more place
+                break;
+            }
+        }
+        return placeList;
     }
 }

@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Handler;
+import android.os.StrictMode;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.support.v7.app.AppCompatActivity;
@@ -19,9 +20,13 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.Socket;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 
@@ -45,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
     String fullName = "";
 
-    private final String DEVICE_ADDRESS="00:21:13:00:E1:2D";//재현
+    private final String DEVICE_ADDRESS = "00:21:13:00:E1:2D";//재현
     //private final String DEVICE_ADDRESS="00:21:13:00:F5:F4";
 
 
@@ -55,24 +60,18 @@ public class MainActivity extends AppCompatActivity {
     private OutputStream outputStream;
     private InputStream inputStream;
 
-    boolean deviceConnected=false;
+    /////////////////서버 연결에 필요한 변수들////////////////
+    Socket serverSocket;  //소켓생성
+    OutputStream os;
+    InputStream is;
+    Protocol protocol;
+    byte[] buf;
+    Thread worker; // 소켓 연결 쓰레드
+    ///////////////////////////////////////////////////////////
+
+    boolean deviceConnected = false;
     byte buffer[];
     boolean stopThread;
-
-    String RFID[] = {
-            "e070c935",
-            "0c75c149",
-            "4850be49",
-            "52494710",
-            "42acf710"
-    };
-    String RFID2[] = {
-            "070c935",
-            "c75c149",
-            "850be49",
-            "2494710",
-            "2acf710"
-    };
 
     private TTSManager ttsManager = null;
 
@@ -90,24 +89,44 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); //display on
         setContentView(R.layout.activity_main);
 
-        if(BTinit())
-        {
-            if(BTconnect())
-            {
+        if (BTinit()) {
+            if (BTconnect()) {
                 //setUiEnabled(true);
-                deviceConnected=true;
+                deviceConnected = true;
                 beginListenForData();
                 //textView.append("\nConnection Opened!\n");
-                Toast.makeText(getApplicationContext(),"Connection Opened!",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Connection Opened!", Toast.LENGTH_SHORT).show();
             }
 
         }
         setContentView(R.layout.activity_main);
 
+        //////////////////////서버 연결/////////////////////////
+        StrictMode.enableDefaults(); //이게 있어야 밑에 쓰레드에서 오류나는걸 무시해줌
+        worker = new Thread() {    //worker 를 Thread 로 생성
+            public void run() { //스레드 실행구문
+                try {
+                    //소켓을 생성하고 입출력 스트립을 소켓에 연결한다.
+                    Log.e("socket", "connecting...");
+                    serverSocket = new Socket("118.47.174.73", 3000); //소켓생성
+                    Log.e("socket", "connected");
+                    os = serverSocket.getOutputStream();
+                    is = serverSocket.getInputStream();
+                    protocol = new Protocol();
+                    buf = protocol.getPacket();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.start();  //onResume()에서 실행.
+        ////////////////////////////////////////////////////////////
+
         ttsManager = new TTSManager();
         ttsManager.init(this);
 
-        if(isfirst) {
+        if (isfirst) {
             isfirst = false;
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
@@ -122,42 +141,42 @@ public class MainActivity extends AppCompatActivity {
         }
 
         imageView = findViewById(R.id.imageView);
-        imageView.setOnTouchListener(new SwipeListener (getApplicationContext()){
+        imageView.setOnTouchListener(new SwipeListener(getApplicationContext()) {
             @Override
-            public void onLeft(){
+            public void onLeft() {
 //                Intent RFIDIntent = new Intent(getApplicationContext(), RFIDActivity.class);
-  //              startActivity(RFIDIntent);
+                //              startActivity(RFIDIntent);
             }
 
-            public void onRight(){
+            public void onRight() {
                 ttsManager.stop();
                 Intent RouteIntent = new Intent(getApplicationContext(), RouteActivity.class);
                 startActivity(RouteIntent);
             }
 
-            public void onTop(){
+            public void onTop() {
                 ttsManager.stop();
                 Intent InfoIntent = new Intent(getApplicationContext(), InfoActivity.class);
                 startActivity(InfoIntent);
             }
 
-            public void onBottom(){
+            public void onBottom() {
                 ttsManager.stop();
                 Intent BusIntent = new Intent(getApplicationContext(), BusActivity.class);
                 startActivity(BusIntent);
             }
         });
+
+
     }
 
-    public boolean BTinit()
-    {
-        boolean found=false;
-        BluetoothAdapter bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
+    public boolean BTinit() {
+        boolean found = false;
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
-            Toast.makeText(getApplicationContext(),"Device doesnt Support Bluetooth",Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "Device doesnt Support Bluetooth", Toast.LENGTH_SHORT).show();
         }
-        if(!bluetoothAdapter.isEnabled())
-        {
+        if (!bluetoothAdapter.isEnabled()) {
             Intent enableAdapter = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableAdapter, 2);
             try {
@@ -167,18 +186,13 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
-        if(bondedDevices.isEmpty())
-        {
-            Toast.makeText(getApplicationContext(),"Please Pair the Device first",Toast.LENGTH_SHORT).show();
-        }
-        else
-        {
-            for (BluetoothDevice iterator : bondedDevices)
-            {
-                if(iterator.getAddress().equals(DEVICE_ADDRESS))
-                {
-                    device=iterator;
-                    found=true;
+        if (bondedDevices.isEmpty()) {
+            Toast.makeText(getApplicationContext(), "Please Pair the Device first", Toast.LENGTH_SHORT).show();
+        } else {
+            for (BluetoothDevice iterator : bondedDevices) {
+                if (iterator.getAddress().equals(DEVICE_ADDRESS)) {
+                    device = iterator;
+                    found = true;
                     break;
                 }
             }
@@ -186,96 +200,93 @@ public class MainActivity extends AppCompatActivity {
         return found;
     }
 
-    public boolean BTconnect()
-    {
-        boolean connected=true;
+    public boolean BTconnect() {
+        boolean connected = true;
         try {
             socket = device.createRfcommSocketToServiceRecord(PORT_UUID);
             socket.connect();
         } catch (IOException e) {
             e.printStackTrace();
-            connected=false;
+            connected = false;
         }
-        if(connected)
-        {
+        if (connected) {
             try {
-                outputStream=socket.getOutputStream();
+                outputStream = socket.getOutputStream();
             } catch (IOException e) {
                 e.printStackTrace();
             }
             try {
-                inputStream=socket.getInputStream();
+                inputStream = socket.getInputStream();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
-
-
         return connected;
     }
 
-    void beginListenForData()
-    {
+    void beginListenForData() {
         final Handler handler = new Handler();
         stopThread = false;
         buffer = new byte[1024];
-        Thread thread  = new Thread(new Runnable()
-        {
-            public void run()
-            {
-                while(!Thread.currentThread().isInterrupted() && !stopThread)
-                {
-                    try
-                    {
+        Thread thread = new Thread(new Runnable() {
+            public void run() {
+                while (!Thread.currentThread().isInterrupted() && !stopThread) {
+                    try {
                         int byteCount = inputStream.available();
-                        if(byteCount > 0)
-                        {
-
+                        if (byteCount > 0) {
                             final byte[] rawBytes = new byte[byteCount];
                             inputStream.read(rawBytes, 0, byteCount); // 0과 byteCount 추가함
                             String string = new String(rawBytes, "UTF-8");
                             fullName = fullName + string;
                             Log.d("string", fullName);
-                            if(fullName.contains("\r\n")) {
+                            if (fullName.contains("\r\n")) {
                                 fullName.replaceAll("\r\n", "");
-                                for(int i = 0; i < RFID.length; i++) {
-                                    if (fullName.contains(RFID[i])) {
-                                        Log.d("RFID", String.valueOf(i));
-                                        switch (String.valueOf(i)) {
-                                            case "0": ttsManager.initQueue("정보대 건물입니다."); break;
-                                            case "1": ttsManager.initQueue("공대 건물입니다."); break;
-                                            case "2": ttsManager.initQueue("복지회관 건물입니다."); break;
-                                            case "3": ttsManager.initQueue("자연과학대학 건물입니다."); break;
-                                            case "4": ttsManager.initQueue("인문대학 건물입니다."); break;
-                                            default: ttsManager.initQueue("경영대학 건물입니다."); break;
-                                        }
-                                    }
+
+                                //////////////////// NFC정보 검색 ////////////////////
+                                protocol = new Protocol(Protocol.PT_RES_NFC);
+                                buf = protocol.getPacket();
+                                int packetType = buf[0];
+                                protocol.setPacket(packetType, buf);
+
+                                System.out.println("서버에 NFC 등록 요청");
+
+                                // 서버로 패킷 전송 (NFC 정보)
+                                protocol.setNFCID(fullName);
+                                System.out.println("NFC 정보 전송");
+                                try {
+                                    os = serverSocket.getOutputStream();
+                                    os.write(protocol.getPacket());
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                // 패킷 초기화
+                                protocol = new Protocol(Protocol.PT_NFC_RESULT);
+                                buf = protocol.getPacket();
+                                packetType = buf[0];
+                                protocol.setPacket(packetType, buf);
+
+                                try {
+                                    is = serverSocket.getInputStream();
+                                    is.read(buf);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                                packetType = buf[0];
+                                protocol.setPacket(packetType, buf);
+
+                                System.out.println("서버가 NFC 결과 전송");
+                                String result = protocol.getNFCResult();
+                                if (result.equals("1")) {
+                                    System.out.println("NFC 등록 성공");
+                                    ttsManager.initQueue(protocol.getNFCName() + "입니다.");
+                                } else if (result.equals("2")) {
+                                    System.out.println("NFC 등록 실패");
                                 }
                                 fullName = "";
                             }
-
-
-                            handler.post(new Runnable() {
-                                public void run()
-                                {
-                                    //textView.append(string);
-                                    if(fullName.length() > 8){
-                                        Toast.makeText(getApplicationContext(), "here", Toast.LENGTH_SHORT).show();
-                                        for(int i = 0; i < RFID.length; i++) {
-                                            if (fullName.matches(RFID[i])) {
-                                                Toast.makeText(getApplicationContext(), "found" + i+1,Toast.LENGTH_SHORT).show();
-                                            }
-                                        }
-                                        fullName = "";
-                                    }
-                                }
-                            });
-
                         }
-                    }
-                    catch (IOException ex)
-                    {
+                    } catch (IOException ex) {
                         stopThread = true;
                     }
                 }
@@ -284,8 +295,9 @@ public class MainActivity extends AppCompatActivity {
 
         thread.start();
     }
+
     @Override
-    protected void onPause(){
+    protected void onPause() {
         ttsManager.stop();
         ttsManager.shutDown();
         super.onPause();

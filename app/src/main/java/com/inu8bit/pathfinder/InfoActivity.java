@@ -17,7 +17,6 @@ public class InfoActivity extends AppCompatActivity {
     private TTSManager ttsManager;
     private ImageView imageView;
     private GoogleAPI googleAPI;
-    private List<String> places;
     private GPSInfo gpsInfo;
 
     @Override
@@ -51,19 +50,31 @@ public class InfoActivity extends AppCompatActivity {
                 try {
                     gpsInfo = new GPSInfo(getApplicationContext());
                     gpsInfo.getCurrentLocation();
-                    places = googleAPI.getNearbyPlace(gpsInfo.getLatitude(), gpsInfo.getLongitude());
+                    double lat = gpsInfo.getLatitude();
+                    double lon = gpsInfo.getLongitude();
+
+                    List<String> subway = googleAPI.getNearbyPlace(lat, lon, "subway_station", 500);
+                    List<String> places = googleAPI.getNearbyPlace(lat, lon);
+
+
+                    ttsManager.addQueue("주변에");
+                    if(!subway.isEmpty()) {
+                        ttsManager.addQueue("지하철" + subway.get(0) + " 및");
+                    }
+                    ttsManager.addQueue(Math.min(places.size(), 3) + "개의 건물이 검색되었습니다.");
+
+                    int i = 1;
+                    for (String place: places) {
+                        if(i > 3) break;
+                        ttsManager.addQueue(i++ + "번째 건물");
+                        ttsManager.addQueue(place);
+                    }
+                    ttsManager.addQueue("입니다");
+
+
                 } catch (Exception e){
                     Log.e("Error", "Exception happened: " + e.getMessage());
                 }
-
-                ttsManager.addQueue("총" + Math.min(places.size(), 3) + "개의 건물이 검색되었습니다");
-                int i = 1;
-                for (String place: places) {
-                    if(i > 3) break;
-                    ttsManager.addQueue(i++ + "번째 건물");
-                    ttsManager.addQueue(place);
-                }
-                ttsManager.addQueue("입니다");
             }
         });
     }

@@ -159,6 +159,29 @@ public class GoogleAPI extends APIWrapper {
         return placeList;
     }
 
+    public List<String> getNearbyPlace(double lat, double lon, String keyword, int radius) throws InterruptedException, ExecutionException, JSONException {
+        url = new StringBuilder(placeNearbySearchURL);
+        params.put("type", keyword);
+        params.put("key", GooglePlaceAPIKey);
+        params.put("language", "ko");
+        params.put("location", String.valueOf(lat) + "," + String.valueOf(lon));
+        params.put("radius", String.valueOf(radius));
+
+        this.method = "GET";
+        String result = this.send();
+        JSONArray places = new JSONObject(result).getJSONArray("results");
+
+        List<String> placeList = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            try {
+                placeList.add(places.getJSONObject(i).getString("name"));
+            } catch (JSONException e){
+                // no more place
+                break;
+            }
+        }
+        return placeList;
+    }
     public String coordToAddress(double lat, double lon) throws InterruptedException, ExecutionException, JSONException{
         url = new StringBuilder(geolocationURL);
         params.put("key", GoogleGeolocationAPIKey);

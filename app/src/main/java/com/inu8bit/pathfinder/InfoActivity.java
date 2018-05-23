@@ -17,7 +17,6 @@ public class InfoActivity extends AppCompatActivity {
     private TTSManager ttsManager;
     private ImageView imageView;
     private GoogleAPI googleAPI;
-    private List<String> places;
     private GPSInfo gpsInfo;
 
     @Override
@@ -31,7 +30,7 @@ public class InfoActivity extends AppCompatActivity {
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             public void run() {
-                ttsManager.initQueue("주번 건물 정보 페이지입니다.");
+                ttsManager.initQueue("주변 건물/지하철 정보 페이지입니다.");
                 ttsManager.addQueue("화면을 터치하면 검색을 시작합니다.");
             }
         }, 1000);
@@ -51,21 +50,40 @@ public class InfoActivity extends AppCompatActivity {
                 try {
                     gpsInfo = new GPSInfo(getApplicationContext());
                     gpsInfo.getCurrentLocation();
-                    places = googleAPI.getNearbyPlace(gpsInfo.getLatitude(), gpsInfo.getLongitude());
+                    double lat = gpsInfo.getLatitude();
+                    double lon = gpsInfo.getLongitude();
+
+                    List<String> subway = googleAPI.getNearbyPlace(lat, lon, "subway_station", 500);
+                    List<String> places = googleAPI.getNearbyPlace(lat, lon);
+
+
+                    ttsManager.addQueue("주변에");
+                    if(!subway.isEmpty()) {
+                        ttsManager.addQueue("지하철" + subway.get(0) + " 및");
+                    }
+                    ttsManager.addQueue(Math.min(places.size(), 3) + "개의 건물이 검색되었습니다.");
+
+                    int i = 1;
+                    for (String place: places) {
+                        if(i > 3) break;
+                        ttsManager.addQueue(i++ + "번째 건물");
+                        ttsManager.addQueue(place);
+                    }
+                    ttsManager.addQueue("입니다");
+
+
                 } catch (Exception e){
                     Log.e("Error", "Exception happened: " + e.getMessage());
                 }
-
-                ttsManager.addQueue("총" + places.size() + "개의 건물이 검색되었습니다");
-                for (String place: places) {
-                    ttsManager.addQueue(place);
-                    ttsManager.addQueue(".....");
-                }
-                ttsManager.addQueue("입니다");
             }
         });
     }
 
+    @Override
+    protected void onPause(){
+        ttsManager.stop();
+        super.onPause();
+    }
     @Override
     protected void onDestroy() {
         super.onDestroy();

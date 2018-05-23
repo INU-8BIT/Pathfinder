@@ -19,6 +19,7 @@ android {
     buildTypes.each {
         it.buildConfigField 'String', 'GoogleDirectionAPIKey', GoogleDirectionAPIKey
         it.buildConfigField 'String', 'GooglePlaceAPIKey', GooglePlaceAPIKey
+        it.buildConfigField 'String', 'GoogleGeolocationAPIKey', GoogleGeolocationAPIKey
         it.buildConfigField 'String', 'DataAPIKey', DataAPIKey
     }
     productFlavors {

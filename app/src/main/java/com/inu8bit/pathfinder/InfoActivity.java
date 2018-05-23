@@ -56,16 +56,22 @@ public class InfoActivity extends AppCompatActivity {
                     Log.e("Error", "Exception happened: " + e.getMessage());
                 }
 
-                ttsManager.addQueue("총" + places.size() + "개의 건물이 검색되었습니다");
+                ttsManager.addQueue("총" + Math.min(places.size(), 3) + "개의 건물이 검색되었습니다");
+                int i = 1;
                 for (String place: places) {
-                    ttsManager.addQueue(place);
-                    ttsManager.addQueue(".....");
+                    if(i > 3) break;
+                    ttsManager.addQueue(i++ + "번째 " + place);
                 }
                 ttsManager.addQueue("입니다");
             }
         });
     }
 
+    @Override
+    protected void onPause(){
+        ttsManager.stop();
+        super.onPause();
+    }
     @Override
     protected void onDestroy() {
         super.onDestroy();

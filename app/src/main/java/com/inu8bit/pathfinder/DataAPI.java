@@ -26,7 +26,7 @@ public class DataAPI extends APIWrapper {
     private String GET_BUS_ARRIVAL_INFO = "http://openapi.tago.go.kr/openapi/service/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList";
 
     public Map<Integer, String[]> getNearbyBusStop(double lat, double lon) throws InterruptedException, ExecutionException, JSONException{
-        String url = this.url + GET_NEARBY_BUS_STOP;
+        url = new StringBuilder(GET_NEARBY_BUS_STOP);
         params.put("ServiceKey", DataAPIKey);
         params.put("gpsLati", String.valueOf(lat));
         params.put("gpsLong", String.valueOf(lon));

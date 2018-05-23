@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static com.inu8bit.pathfinder.BuildConfig.GoogleDirectionAPIKey;
+import static com.inu8bit.pathfinder.BuildConfig.GoogleGeolocationAPIKey;
 import static com.inu8bit.pathfinder.BuildConfig.GooglePlaceAPIKey;
 
 /**
@@ -22,6 +23,7 @@ public class GoogleAPI extends APIWrapper {
     private String directionURL = "https://maps.googleapis.com/maps/api/directions/json";
     private String placeTextSearchURL = "https://maps.googleapis.com/maps/api/place/textsearch/json";
     private String placeNearbySearchURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json";
+    private String geolocationURL = "https://maps.googleapis.com/maps/api/geocode/json";
     private String detailedPlaceURL = "https://maps.googleapis.com/maps/api/place/details/json";
 
 
@@ -155,5 +157,17 @@ public class GoogleAPI extends APIWrapper {
             }
         }
         return placeList;
+    }
+
+    public String coordToAddress(double lat, double lon) throws InterruptedException, ExecutionException, JSONException{
+        url = new StringBuilder(geolocationURL);
+        params.put("key", GoogleGeolocationAPIKey);
+        params.put("language", "ko");
+        params.put("latlng", String.valueOf(lat) + "," + String.valueOf(lon));
+        //https://maps.googleapis.com/maps/api/geocode/json?latlng=37.376122,%20126.632545&key=AIzaSyCUyEn_YLjWgzgWQuZJdg83pdNVDg5gBig&language=ko
+        this.method = "GET";
+        String result = this.send();
+        return new JSONObject(result).getJSONArray("results")
+                .getJSONObject(0).getString("formatted_address");
     }
 }

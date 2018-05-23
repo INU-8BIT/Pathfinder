@@ -1,39 +1,27 @@
 package com.inu8bit.pathfinder;
 
-import android.Manifest;
-import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.speech.RecognizerIntent;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Toast;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 public class RouteActivity extends AppCompatActivity {
 
     private GoogleAPI googleAPI;
     private TTSManager ttsManager;
     private ImageView imageView;
-    List<Route> routes;
-    Iterator<Route> nextRoute;
-    String agencyNumber;
+    private List<Route> routes;
+    private int remainedRoutes;
+    private String agencyNumber;
 
-    String start="호구포역", end="서울대입구";
+    private String start = "", end = "";
+    private String inputStart = "", inputEnd = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,9 +36,9 @@ public class RouteActivity extends AppCompatActivity {
             public void run() {
                 Log.d("ttsManager","Initialized");
                 ttsManager.initQueue("경로 안내 페이지입니다");
-                ttsManager.addQueue("위쪽: 출발지");
-                ttsManager.addQueue("아래쪽: 도착지");
-
+                ttsManager.addQueue("위로 스와이프: 출발지");
+                ttsManager.addQueue("아래로 스와이프: 도착지");
+                ttsManager.addQueue("오른쪽으로 스와이프: 경로 검색 시작");
             }
         }, 1000);
 
@@ -60,38 +48,46 @@ public class RouteActivity extends AppCompatActivity {
             public void onTapUp(){
                 // no current route or not initialized.
                 if(routes == null || routes.isEmpty())  return;
-
-                // speak if the next exists.
-                if(nextRoute.hasNext()){
-                    Route currRoute = nextRoute.next();
-                    switch(currRoute.travel_mode){
+                if(remainedRoutes - routes.size() >= 0){
+                    Route route = routes.get(remainedRoutes - routes.size());
+                    switch(route.travel_mode){
                         case "WALKING":
-                            ttsManager.initQueue("이번에는 " + currRoute.instruction + "입니다");
-                            ttsManager.addQueue("이동거리는 " + currRoute.length + "입니다");
+                            ttsManager.initQueue("이번에는 " + route.instruction + "입니다");
+                            ttsManager.addQueue("이동거리는 " + route.length + "입니다");
                             agencyNumber = null;
                             break;
                         case "TRANSIT":
-                            ttsManager.initQueue("이번에는 " + currRoute.instruction + "입니다" );
-                            ttsManager.addQueue(currRoute.agency + " " + currRoute.method + "를 탑승하세요.");
-                            ttsManager.addQueue("하차역은 " + currRoute.destination + "입니다. ");
-                            ttsManager.addQueue(currRoute.length + "개의 정류장을 지나 ");
-                            ttsManager.addQueue("약 " + currRoute.arrival_time + "에 도착 예정입니다.");
-                            if(currRoute.agencyNumber != null) {
+                            ttsManager.initQueue("이번에는 " + route.instruction + "입니다" );
+                            if(route.method.contains("의정부경전철")){
+                                ttsManager.addQueue("인천 1호선을 탑승하세요");
+                            }
+                            else {
+                                ttsManager.addQueue(route.agency + " " + route.method + "를 탑승하세요.");
+                            }
+                            ttsManager.addQueue("하차역은 " + route.destination + "입니다. ");
+                            ttsManager.addQueue(route.length + "개의 정류장을 지나 ");
+                            ttsManager.addQueue("약 " + route.arrival_time + "에 도착 예정입니다.");
+                            if(route.agencyNumber != null) {
                                 ttsManager.addQueue("운수회사로 전화를 거시려면 화면을 길게 누르세요.");
-                                agencyNumber = currRoute.agencyNumber;
+                                agencyNumber = route.agencyNumber;
                             }
                             else {
                                 agencyNumber = null;
                             }
-
                             break;
                     }
+                    remainedRoutes++;
+                }
 
-                    if(!nextRoute.hasNext()){
-                        ttsManager.initQueue("목적지 부근입니다");
+                else {
+                    try {
+                        routes.clear();
+                    } catch (Exception e){
+
                     }
                 }
             }
+
             @Override
             public void onLongTouch(){
                 if(agencyNumber != null){
@@ -108,17 +104,39 @@ public class RouteActivity extends AppCompatActivity {
                     }
                 }
             }
+
             @Override
             public void onRight(){
+                if(inputStart == "" && inputEnd == "") {
+                    ttsManager.initQueue("출발지나 도착지가 입력되지 않았습니다");
+                    return;
+                }
+
                 ttsManager.initQueue("경로 탐색 중입니다");
+
+                if(inputStart == "" | inputStart.contains("여기") | inputStart.contains("이곳") | inputStart.contains("이 곳")) {
+                    GPSInfo gpsinfo = new GPSInfo(RouteActivity.this);
+                    gpsinfo.getCurrentLocation();
+                    double lat = gpsinfo.getLatitude();
+                    double lon = gpsinfo.getLongitude();
+                    start = String.valueOf(lat) + "," + String.valueOf(lon);
+                    inputStart = "이곳에서";
+                }
+                else {
+                    start = inputStart;
+                }
+
+                end = inputEnd;
                 googleAPI = new GoogleAPI();
                 try {
                     routes = googleAPI.getTransitRoute(start, end);
-                    ttsManager.addQueue(start + "부터 " + end + "까지 경로를 검색하였습니다.");
-                    nextRoute = routes.iterator();
+                    ttsManager.addQueue(inputStart + "부터 " + inputEnd + "까지 경로를 검색하였습니다.");
+                    ttsManager.addQueue("안내를 받으시려면 화면을 터치하세요.");
+                    remainedRoutes = routes.size();
 
                 } catch (Exception e) {
                     Log.e("Error", "Exception happened: " + e.getMessage());
+                    ttsManager.addQueue("경로가 존재하지 않습니다.");
                 }
             }
 
@@ -128,7 +146,8 @@ public class RouteActivity extends AppCompatActivity {
                 i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");                     // Set Language
                 i.putExtra(RecognizerIntent.EXTRA_PROMPT, "출발지");                       // Prompt Message
                 startActivityForResult(i, 0);
-                routes.clear();
+                if(routes != null && !routes.isEmpty())
+                    routes.clear();
             }
             public void onBottom(){
                 Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
@@ -136,7 +155,8 @@ public class RouteActivity extends AppCompatActivity {
                 i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");                     // Set Language
                 i.putExtra(RecognizerIntent.EXTRA_PROMPT, "도착지");                       // Prompt Message
                 startActivityForResult(i, 1);                                        // Run Google Voice Recognition
-                routes.clear();
+                if(routes != null && !routes.isEmpty())
+                    routes.clear();
             }
 
             @Override
@@ -154,10 +174,11 @@ public class RouteActivity extends AppCompatActivity {
             switch (requestCode) {
                 case 0:
                     Log.d("Start: ", matches.get(0));
-                    start = matches.get(0);
+                    inputStart = matches.get(0);
                     break;
                 case 1:
                     Log.d("Destination: ", matches.get(0));
+                    inputEnd = matches.get(0);
                     break;
                 case 2:
                     break;
@@ -174,7 +195,6 @@ public class RouteActivity extends AppCompatActivity {
     protected void onPause(){
         ttsManager.stop();
         super.onPause();
-
     }
 
     @Override

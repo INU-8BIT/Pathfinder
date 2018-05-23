@@ -44,8 +44,8 @@ public class BusActivity extends AppCompatActivity {
         handler.postDelayed(new Runnable() {
             public void run() {
                 ttsManager.initQueue("주변 정류장 검색페이지입니다.");
-                ttsManager.addQueue("위쪽, 가장 가까운 정류장 도착 버스 정보");
-                ttsManager.addQueue("아래쪽, 주변 정류장 이름 검색");
+                ttsManager.addQueue("위로 스와이프: 이름으로 정류장 검색");
+                ttsManager.addQueue("아래로 스와이프, 인근 정류장 검색");
             }
         }, 1000);
 

@@ -30,7 +30,7 @@ public class InfoActivity extends AppCompatActivity {
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             public void run() {
-                ttsManager.initQueue("주번 건물 정보 페이지입니다.");
+                ttsManager.initQueue("주변 건물/지하철 정보 페이지입니다.");
                 ttsManager.addQueue("화면을 터치하면 검색을 시작합니다.");
             }
         }, 1000);

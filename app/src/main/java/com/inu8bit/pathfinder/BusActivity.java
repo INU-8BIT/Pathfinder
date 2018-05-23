@@ -46,6 +46,7 @@ public class BusActivity extends AppCompatActivity {
                 ttsManager.initQueue("주변 정류장 검색페이지입니다.");
                 ttsManager.addQueue("위로 스와이프: 이름으로 정류장 검색");
                 ttsManager.addQueue("아래로 스와이프, 인근 정류장 검색");
+                ttsManager.addQueue("오른쪽으로 스와이프, 주변 500m 내 지하철 검색");
             }
         }, 1000);
 
@@ -97,6 +98,28 @@ public class BusActivity extends AppCompatActivity {
                 } catch (InterruptedException | ExecutionException | JSONException e){
                     // TODO: Differenciate Exception
                     Log.e("Error", "Exception happened: " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void onRight() {
+                ttsManager.initQueue("주변 500m 내 지하철 검색 중..");
+                try {
+                    gpsInfo = new GPSInfo(BusActivity.this);
+                    gpsInfo.getCurrentLocation();
+                    double lat = gpsInfo.getLatitude();
+                    double lon = gpsInfo.getLongitude();
+                    googleAPI = new GoogleAPI();
+
+                    List<String> subway = googleAPI.getNearbyPlace(lat, lon, "subway_station", 500);
+                    if(subway.isEmpty()){
+                        ttsManager.initQueue("주변 500m 내에 지하철 역은 없습니다");
+                    }
+                    else {
+                        ttsManager.initQueue("주변 500m 내에 " + subway.get(0) + "이 있습니다");
+                    }
+                } catch (Exception e){
+
                 }
             }
 

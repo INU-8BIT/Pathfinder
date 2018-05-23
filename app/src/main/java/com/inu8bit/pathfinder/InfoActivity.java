@@ -60,7 +60,8 @@ public class InfoActivity extends AppCompatActivity {
                 int i = 1;
                 for (String place: places) {
                     if(i > 3) break;
-                    ttsManager.addQueue(i++ + "번째 " + place);
+                    ttsManager.addQueue(i++ + "번째 건물");
+                    ttsManager.addQueue(place);
                 }
                 ttsManager.addQueue("입니다");
             }

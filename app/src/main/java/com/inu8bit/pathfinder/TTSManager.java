@@ -40,7 +40,7 @@ public class TTSManager {
     };
 
     public void shutDown() {
-        mTts.shutdown();
+        isLoaded = false; mTts.shutdown();
     }
 
     public void addQueue(String text) {

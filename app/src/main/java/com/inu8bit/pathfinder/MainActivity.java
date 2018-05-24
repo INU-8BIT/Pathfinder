@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.StrictMode;
 import android.speech.tts.TextToSpeech;
@@ -82,6 +83,17 @@ public class MainActivity extends AppCompatActivity {
             Log.d("BLUETOOTH", "BLE device found: " + device.getName() + "; MAC " + device.getAddress());
         }
     };
+
+    @Override
+    public void recreate() {
+        if(Build.VERSION.SDK_INT >= 11) {
+            super.recreate();
+        }
+        else {
+            startActivity(getIntent());
+            finish();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -279,6 +291,10 @@ public class MainActivity extends AppCompatActivity {
                                 String result = protocol.getNFCResult();
                                 if (result.equals("1")) {
                                     System.out.println("NFC 등록 성공");
+                                    if(ttsManager == null) {
+                                        ttsManager = new TTSManager();
+                                        ttsManager.init(MainActivity.this);
+                                    }
                                     ttsManager.initQueue(protocol.getNFCName() + "입니다.");
                                 } else if (result.equals("2")) {
                                     System.out.println("NFC 등록 실패");
@@ -299,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         ttsManager.stop();
-        ttsManager.shutDown();
+        //ttsManager.shutDown();
         super.onPause();
     }
 
